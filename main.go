@@ -10,6 +10,10 @@ import (
 )
 
 func main() {
+	err := os.Mkdir("streams", os.ModePerm)
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
 	r := mux.NewRouter()
 	r.Use(loggingMiddleware)
 
@@ -23,12 +27,19 @@ func main() {
 
 	// stream endpoint
 	r.HandleFunc("/publish/{streamid}", PublishHandle)
-	log.Print("HLS server listening")
+	log.Print("HTTP server listening on 0.0.0.0:8080")
 	log.Fatal(http.ListenAndServe("0.0.0.0:8080", r))
 }
 
 // PublishHandle handles accepting the stream from ffmpeg and storing it locally to disk
 func PublishHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		os.Remove("streams/" + mux.Vars(r)["streamid"])
+	}
+	if r.Method != http.MethodPut {
+		return
+	}
+	// Only accept PUT for adding new stream files
 	defer r.Body.Close()
 	file, err := os.Create("streams/" + mux.Vars(r)["streamid"])
 	defer file.Close()
