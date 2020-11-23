@@ -1,0 +1,54 @@
+package main
+
+import (
+	"io"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/gorilla/mux"
+)
+
+func main() {
+	r := mux.NewRouter()
+	r.Use(loggingMiddleware)
+
+	// public site
+	fpub := http.FileServer(http.Dir("./public"))
+	r.Handle("/", fpub)
+
+	// stream files
+	fstream := http.FileServer(http.Dir("./streams"))
+	r.PathPrefix("/watch/").Handler(http.StripPrefix("/watch/", fstream))
+
+	// stream endpoint
+	r.HandleFunc("/publish/{streamid}", PublishHandle)
+	log.Print("HLS server listening")
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", r))
+}
+
+// PublishHandle handles accepting the stream from ffmpeg and storing it locally to disk
+func PublishHandle(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	file, err := os.Create("streams/" + mux.Vars(r)["streamid"])
+	defer file.Close()
+	if err != nil {
+		log.Printf("%+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err = io.Copy(file, r.Body)
+	if err != nil {
+		log.Printf("%+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[%s] - %s", r.Method, r.RequestURI)
+		// Call the next handler, which can be another middleware in the chain, or the final handler.
+		next.ServeHTTP(w, r)
+	})
+}
