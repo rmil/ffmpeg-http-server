@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 	err := os.Mkdir("streams", os.ModePerm)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrExist) {
 		log.Fatalf("%+v", err)
 	}
 	r := mux.NewRouter()
@@ -19,7 +20,7 @@ func main() {
 
 	// public site
 	fpub := http.FileServer(http.Dir("./public"))
-	r.Handle("/", fpub)
+	r.PathPrefix("/players/").Handler(http.StripPrefix("/players/", fpub))
 
 	// stream files
 	fstream := http.FileServer(http.Dir("./streams"))
