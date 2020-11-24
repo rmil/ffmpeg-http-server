@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>Clappr Player</title>
+        <meta charset="UTF-8">
+        <!-- Player -->
+        <script type="text/javascript" src="//cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+        <!-- Quality selector -->
+        <script type="text/javascript" src="//cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+      </head>
+      
+      <body>
+        <div id="player"></div>
+        <script>
+          Clappr.Log.setLevel(Clappr.Log.LEVEL_DEBUG);
+          var player = new Clappr.Player({
+            source: "/watch/master.m3u8",
+            parentId: "#player",
+            mute: true,
+            autoPlay: true,
+            plugins: {
+              core: [LevelSelector]
+            },
+            levelSelectorConfig: {
+              title: 'Qualities',
+            },
+          });
+        </script>
+      </body>
+      
+</html>
